@@ -40,7 +40,7 @@ appender = function(list_file, defined.function){
 }
 grabber = function(file_path){
      require(tools); require(xlsx)
-     # file_path = lof[1]
+     #file_path = clinical.files[1]
      if(file_ext(file_path) == "csv"){
           a=read.csv(file_path)
      } else{
@@ -48,27 +48,18 @@ grabber = function(file_path){
      }
      cat("File is ", basename(file_path))
      cat("\n")
-     
-     # names(a)[names(a) == "..Specimen.Barcode"] = "Sample"
      names(a)[1] = "Sample"
-     names(a)[names(a) == "Test.order.."] = "test.order"
-     # names(a)[82] = "test.order"
+     names(a)[82] = "test.order"
      names(a)[names(a) == "LR_Ct_NonNormalized"] = "ct"
      names(a)[names(a) == "LR_TSlope_NonNormalized"] = "tslope"
      a = a[!(grepl("end", a$Sample)),]
      
      #data-extraction from filename
+     
      a$filepath = file_path
      a$filename = basename(file_path)
-     
-     ### New process to extract serial number without destroying data storage
-     temp = strsplit(basename(a$filename), split="_")
-     temp2 = lapply(temp, `[[`, 2)
-     temp3 = unlist(temp2)
-     temp4 = strsplit(temp3, split="-")
-     temp5 = unlist(temp4)
-     a$pantherSN = substr(temp5[1], 4, nchar(temp5[1]))
-     a$ud.filename = lapply(temp, `[[`, 1)[[1]]
+     temp = strsplit(basename(a$filename), split="-")
+     a$pantherSN = substr(unlist(temp[1])[1], 4, nchar(unlist(temp[1])[1]))
      
      #metrics of interest
      a$ct = as.double(as.character(a$ct))
@@ -89,8 +80,7 @@ grabber = function(file_path){
      
      a = subset(a, select=c(completion.date, pipette.time, Sample, Sample.Name, Run.ID, test.order, FusionTestOrder, WellID, Flag,
                             Channel, RFU.Range, ct, EstimatedBaseline, tslope,
-                            FCROBS, FEROBS, FusionAssayName, FusionAssayVersion, Software.Revision,
-                            filepath, filename, ud.filename, pantherSN))
+                            FCROBS, FEROBS, FusionAssayName, FusionAssayVersion, Software.Revision, filepath, filename, pantherSN))
      a
 }
 multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {

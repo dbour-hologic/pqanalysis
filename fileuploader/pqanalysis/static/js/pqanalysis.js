@@ -13,7 +13,6 @@ $(document).ready(function() {
 			},
 			'submitter': {
 				required: true,
-				alphanumeric: true,
 				rangelength:[1,99]
 			}
 		},

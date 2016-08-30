@@ -79,7 +79,7 @@ def add_attachment_done(request, assay, format_analysis_id, worklist_options, li
 				break
 
 		return render(request, "pqanalysis/pqerror.html", {"error_out":log_str})
-	return render(request, "pqanalysis/pqanalysis.html")
+	return view_results(request)
 
 
 def shuttle_dir(assay_location):
@@ -99,22 +99,24 @@ def shuttle_dir(assay_location):
 
 	timed_out = True
 
-	# Maximum waiting time of 30 seconds before timing out.
-	for counts in range(15):
+	# Maximum waiting time of 20 seconds before timing out.
+	for counts in range(60):
+
+		for results in os.listdir(GET_DATA):
+			if results.endswith('.html'):
+				que.append(results)
+
 		if len(que) <= 0:
-			time.sleep(2)
+			time.sleep(1)
 		else:
 			timed_out = False
 			break
-
-	for results in os.listdir(GET_DATA):
-		if results.endswith('.html'):
-			que.append(results)
 	
-	for pq_files in que:
-		# (1) Here's where you look up the file and save to database
-		# (2) Here's where you move the file
-		shutil.move(os.path.join(GET_DATA, pq_files), SAVE_DATA)
+	if not timed_out:
+		for pq_files in que:
+			# (1) Here's where you look up the file and save to database
+			# (2) Here's where you move the file
+			shutil.move(os.path.join(GET_DATA, pq_files), SAVE_DATA)
 
 	return timed_out
 
