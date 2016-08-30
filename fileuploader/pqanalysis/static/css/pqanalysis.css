@@ -1,0 +1,90 @@
+/* Tools Status */
+
+.page_status_on {
+	font-size: 0.8em;
+	color: green;
+}
+
+.page_status_off {
+	font-size: 0.8em;
+	color: red;
+}
+
+/*__________________*/
+
+
+.align_text_left {
+	text-align: left;
+}
+
+.shift_list_left {
+	text-align: left;
+	font-family: 'Noto Sans', sans-serif;
+	font-size: 1.0em;
+}
+
+.classy_header {
+	font-family: 'Noto Sans', sans-serif;
+	font-weight: bold;
+	font-size: 2.0em;
+}
+
+.fullstretch {
+	position: relative;
+	background: white;
+	color: black;
+	width: 100%;
+	height: 100%;
+	display: table;
+	text-align: center;
+}
+
+span.glyph-mod {
+	font-size: 10em;
+	color: black;
+}
+
+
+.equal, .equal > div[class*='col-'] {
+	display: -webkit-flex;
+	display: flex;
+	flex: 1 1 auto;
+}
+
+#title_page {
+	background-repeat: no-repeat;
+	background-size: 100%;
+	background-position: center;
+	padding-bottom: 300px;
+	background: #517396;
+}
+
+#bioinfo_header {
+	color: white;
+	font-weight: bold;
+	font-size: 170px;
+	position: absolute;
+	bottom: -65px;
+	left: 10px;
+}
+
+#footer_main {
+	background: white;
+	padding: 100px;
+}
+
+.jumbotron {
+	margin-top: 0px;
+	background: #517396;
+	position: relative;
+}
+
+.panel-mod {
+	background: #517396 !important;
+}
+
+.panel-body {
+	font-family: 'Noto Sans', sans-serif;
+	font-size: 1.2em;
+}
+

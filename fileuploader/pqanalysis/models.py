@@ -17,11 +17,14 @@ def upload_to(instance, filename):
 		the location to save the file (str)
 	"""
 
-	base_media_dir = "media/pqanalysis/"
+	# base_media_dir = "files/media/pqanalysis/"
 	save_directory = instance.analysis_id
 	filename_base, filename_ext = os.path.splitext(filename)
 
-	return base_media_dir + save_directory + "/" + filename_base + filename_ext.lower()
+	# new_implentation
+	# return save_directory + "/" + instance.analysis_id + "_" + filename_base + filename_ext.lower()
+	# old_implementation - before name change
+	return "pqresults/" + save_directory + "/" + filename_base + filename_ext.lower()
 
 class PqAttachment(models.Model):
 	analysis_id = models.CharField(max_length=100)

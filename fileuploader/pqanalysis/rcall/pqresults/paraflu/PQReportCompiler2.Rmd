@@ -84,7 +84,7 @@ library(htmltools)
 library(knitr)
 # setwd("T:/CoreTeams/Radium/Assay Development_Orig/Kyle S/PQ Data")
 # setwd("C:/Users/ks0316/Documents/PQReportCompiler")2
-source(file="/home/davidb/RThings/RSCRIPT/allFunctions2.R")
+source(file="./allFunctions2.R")
 wlid = read.csv(params$worklist.id, stringsAsFactors = FALSE)
 if(params$limits != "nonspecified"){
      assay.limits = read.csv(params$limits, stringsAsFactors = FALSE)

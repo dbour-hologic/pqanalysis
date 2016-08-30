@@ -5,12 +5,15 @@ import os
 import subprocess
 import shlex
 
+from subprocess import Popen, PIPE, STDOUT
+
 class R_Caller():
 
     def __init__(self, assay_type, data_dir):
 
         self.assay = assay_type
         self.data_dir = data_dir
+        print("DATA DIR" ,data_dir)
 
         base_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -57,9 +60,11 @@ class R_Caller():
             If run was executed. (bool)
         """
 
+        logs = None
+
         if default:
             if self.assay == 'paraflu':
-                self.__call_r_markdown(self.markdown_file, self.data_dir, 'paraflu', self.worklist_file, self.limits_file)
+                logs = self.__call_r_markdown(self.markdown_file, self.data_dir, 'paraflu', self.worklist_file, self.limits_file)
         else:
             try:
                 markdown_arg = self.markdown_file
@@ -69,9 +74,11 @@ class R_Caller():
                 limit_arg = kwargs.get('limits_list')
                 lof_arg = kwargs.get('lof', "nonspecified")
                 str_as = kwargs.get('str_as_factor', "FALSE")
-                self.__call_r_markdown(markdown_arg, data_arg, assay_arg, work_arg, limit_arg, lof_arg, str_as)
+                logs = self.__call_r_markdown(markdown_arg, data_arg, assay_arg, work_arg, limit_arg, lof_arg, str_as)
             except KeyError:
                 print("MISSING ARGUMENTS")
+                
+        return logs
 
     def __call_r_markdown(self, markdown_file, data_dir, assay_type,
                         worklist_file, limits_file, lof_file="nonspecified",
@@ -106,6 +113,8 @@ class R_Caller():
         LOF_FILE = lof_file
         STR_AS_F = string_as_factor
 
+
+
         FINAL_CMD = "\"rmarkdown::render(input='%s', params=data.frame(directory='%s',"\
                                                                         "assay='%s',"\
                                                                         "worklist.id='%s',"\
@@ -118,8 +127,12 @@ class R_Caller():
 
         execute_cmd = [COMMAND, PARAM, FINAL_CMD]
         execute_to_str = " ".join(execute_cmd)
-        args = shlex.split(execute_to_str)
-        subprocess.Popen(args)
+        # // LATER FIX -- WHY DOESN'T CENTOS NOT LIKE SHLEX.SPLIT??
+        args=execute_to_str
+        # args = shlex.split(execute_to_str)
+
+        logs = subprocess.Popen(args, stdin=PIPE, stdout=PIPE, stderr=STDOUT, shell=True)
+        return logs
 
 if __name__ == '__main__':
 

@@ -1,0 +1,95 @@
+/* Makes bootstrap non-responsive */
+
+
+/* Account for fixed navbar */
+body {
+	min-width: 970px;
+	padding-top: 0px;
+	padding-bottom: 0px;	
+}
+
+
+
+/* Disables the responsive-ness of container, grid, navbar */
+
+.container {
+	width: 970px;
+	max-width: none !important;
+}
+
+/* Grid */
+.col-xs-4 {
+	padding-top: 15px;
+	padding-bottom: 15px;
+}
+
+/* Navbar collapse */
+.container .navbar-header,
+.container .navbar-collapse {
+	margin-right:0;
+	margin-left:0;
+}
+
+/* Always float navbar header */
+.navbar-header {
+	float: left;
+}
+
+/* Undo navbar collapse */
+.navbar-collapse {
+	display: block !important;
+	height: auto !important;
+	padding-bottom: 0;
+	overflow: visible !important;
+	visibility: visible !important;
+}
+
+.navbar-toggle {
+	display: none;
+}
+
+.navbar-collapse {
+	border-top: 0;
+}
+
+.navbar-brand {
+	margin-left: -15px;
+}
+
+.navbar-nav {
+	float: left;
+	margin: 0;
+}
+
+.navbar-nav > li {
+	float: left;
+}
+
+.navbar-nav > li > a {
+	padding: 15px;
+}
+
+.navbar {
+	background: #333;
+	border: none;
+}
+
+.navbar-default .navbar-nav > li > a {
+	font-size: 16px;
+	font-weight: bold;
+}
+
+
+.navbar-default .navbar-nav > li > a:hover,
+.navbar-default .navbar-nav > li > a:focus{
+	color: white;
+}
+
+
+/* Changes background color of nav */
+.navbar-default .navbar-nav > .active > a,
+.navbar-default .navbar-nav > .active > a:hover,
+.navbar-default .navbar-nav > .active > a:focus{
+	color: white;
+	background: #333;
+}

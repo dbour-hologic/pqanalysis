@@ -1,5 +1,5 @@
 RESULTS
 {% for key, values in file_dict.items %}
-	{{ key }} | <a href="{{ values }}">Link</a>
+	{{ key }} | <a href="{{ MEDIA_URL }}{{ values }}">{{ key }}</a>
 	<br>
 {% endfor %}

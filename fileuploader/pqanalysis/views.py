@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, render_to_response
+from django.conf import settings
 from .models import PqAttachment
 from rcall.rcaller import R_Caller
 import datetime, os
@@ -40,8 +41,10 @@ def add_attachment_done(request, assay, format_analysis_id, worklist_options, li
 		(3) Go to results page
 	"""
 
+	logs = ""
+
 	query_db = PqAttachment.objects.filter(analysis_id__exact = format_analysis_id)
-	files_dir = os.path.dirname(os.path.abspath(query_db.values()[0]['attachment']))
+	files_dir = os.path.join(settings.MEDIA_ROOT, "/".join(query_db.values()[0]['attachment'].split("/")[:-1]))
 
 	if assay == 'paraflu':
 
@@ -49,21 +52,33 @@ def add_attachment_done(request, assay, format_analysis_id, worklist_options, li
 
 		if worklist_options == 'paraflu-default-worklist' and limit_options == 'paraflu-default-limit':
 			r.set_defaults()
-			r.execute()
+			logs = r.execute()
 		elif worklist_options == 'paraflu-default-worklist':
 			r.set_defaults()
 			r.limits_file = limit_options
-			r.execute()
+			logs = r.execute()
 		elif limit_options == 'paraflu-default-limit':
 			r = set_defaults()
 			r.worklist_file = worklist_options
-			r.execute()
+			logs = r.execute()
 		else:
-			r.execute(default=False, data_dir=files_dir, assay_type='paraflu', wrk_list=worklist_options,
+			logs = r.execute(default=False, data_dir=files_dir, assay_type='paraflu', wrk_list=worklist_options,
 					  limits_list=limit_options)
 
-	shuttle_dir('paraflu')
+	program_timed_out = shuttle_dir('paraflu')
+	if program_timed_out:
+		
+		log_str = ""
 
+		while True:
+			line = logs.stdout.readline()
+			if line != '':
+				log_str += line.rstrip()
+				log_str += "\n"
+			else:
+				break
+
+		return render(request, "pqanalysis/pqerror.html", {"error_out":log_str})
 	return render(request, "pqanalysis/pqanalysis.html")
 
 
@@ -75,33 +90,43 @@ def shuttle_dir(assay_location):
 
 	BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 	GET_DATA = os.path.join(BASE_DIR, 'rcall', 'pqresults', assay_location)
-	SAVE_DATA = os.path.join(BASE_DIR, 'rcall', 'pqresults')
+	SAVE_DATA = os.path.join(settings.MEDIA_ROOT, 'pqresults')
 
 	que = []
 
 	# This is a hack, may need to find a way to optimize this
 	# It's to wait for the R script to finally finish
-	while len(que) <= 0:
-		time.sleep(2)
-		for results in os.listdir(GET_DATA):
-			if results.endswith('.html'):
-				que.append(results)
+
+	timed_out = True
+
+	# Maximum waiting time of 30 seconds before timing out.
+	for counts in range(15):
+		if len(que) <= 0:
+			time.sleep(2)
+		else:
+			timed_out = False
+			break
+
+	for results in os.listdir(GET_DATA):
+		if results.endswith('.html'):
+			que.append(results)
 	
 	for pq_files in que:
 		# (1) Here's where you look up the file and save to database
 		# (2) Here's where you move the file
 		shutil.move(os.path.join(GET_DATA, pq_files), SAVE_DATA)
 
+	return timed_out
+
 def view_results(request):
 
 
-	BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-	SAVE_DATA = os.path.join(BASE_DIR, 'rcall', 'pqresults')
+	
+	SAVE_DATA = os.path.join(settings.MEDIA_ROOT, 'pqresults')
 
 	file_dict = {}
 
 	for files in os.listdir(SAVE_DATA):
 		if files.endswith('.html'):
-			file_dict[files] = os.path.join(SAVE_DATA, files)
-
+			file_dict[files] = os.path.join('pqresults', files)
 	return render(request, 'pqanalysis/pqresults.html', {'file_dict':file_dict})
