@@ -31,6 +31,7 @@ class PqAttachment(models.Model):
 	file_name = models.CharField(max_length=100)
 	attachment = models.FileField(upload_to=upload_to)
 	submitter = models.CharField(max_length=100)
+	date_submitted = models.DateField(auto_now_add=True)
 
 class PqResults(models.Model):
 	pqresults = models.ForeignKey(PqAttachment, on_delete=models.CASCADE)

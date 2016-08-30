@@ -77,7 +77,9 @@ class R_Caller():
                 logs = self.__call_r_markdown(markdown_arg, data_arg, assay_arg, work_arg, limit_arg, lof_arg, str_as)
             except KeyError:
                 print("MISSING ARGUMENTS")
-                
+
+        if logs:
+            print(logs.stdout.read())  
         return logs
 
     def __call_r_markdown(self, markdown_file, data_dir, assay_type,
