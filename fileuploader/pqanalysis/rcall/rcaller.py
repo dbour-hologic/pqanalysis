@@ -8,8 +8,15 @@ import shlex
 class R_Caller():
 
     def __init__(self, assay_type, data_dir):
+
         self.assay = assay_type
         self.data_dir = data_dir
+
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+
+        # Set the main markdown script to use
+        if assay_type == 'paraflu':
+            self.markdown_file = os.path.join(base_dir, 'pqresults', 'paraflu', 'PQReportCompiler2.Rmd')
 
     def set_defaults(self):
         """ Sets the default settings if none is specified """
@@ -17,14 +24,12 @@ class R_Caller():
         base_dir = os.path.dirname(os.path.abspath(__file__))
 
         settings = {
-            'paraflu':{'markdown_file': os.path.join(base_dir, 'pqresults', 'paraflu', 'PQReportCompiler2.Rmd'),
-                       'worklist_file': os.path.join(base_dir, 'defaults', 'paraflu','worklist', 'worklist.id.csv'),
+            'paraflu':{'worklist_file': os.path.join(base_dir, 'defaults', 'paraflu','worklist', 'worklist.id.csv'),
                        'limits_file': os.path.join(base_dir, 'defaults', 'paraflu', 'limits', 'assay.limits.csv')
                       }
         }
 
         if self.assay == 'paraflu':
-            self.markdown_file = settings['paraflu']['markdown_file']
             self.worklist_file = settings['paraflu']['worklist_file']
             self.limits_file = settings['paraflu']['limits_file']
         else:
@@ -41,13 +46,13 @@ class R_Caller():
             defaults - to switch defaults on/off (bool)
             *args - None
             **kwargs - 
-                (1) markdown_file
-                (2) data_dir
-                (3) assay_type
-                (4) wrk_list
-                (5) limits_list
-                (6) lof
-                (7) str_as_factor
+              
+                (1) data_dir
+                (2) assay_type
+                (3) wrk_list
+                (4) limits_list
+                (5) lof
+                (6) str_as_factor
         Returns:
             If run was executed. (bool)
         """
@@ -57,7 +62,7 @@ class R_Caller():
                 self.__call_r_markdown(self.markdown_file, self.data_dir, 'paraflu', self.worklist_file, self.limits_file)
         else:
             try:
-                markdown_arg = kwargs.get('markdown_file')
+                markdown_arg = self.markdown_file
                 data_arg = kwargs.get('data_dir')
                 assay_arg = kwargs.get('assay_type')
                 work_arg = kwargs.get('wrk_list')

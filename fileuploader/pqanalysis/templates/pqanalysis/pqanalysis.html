@@ -14,14 +14,25 @@
 	<br>
 	Submitter: <input type="text" id='submitter' name="submitter">
 	<br>
+
+	<fieldset>
+		<legend>Choose assay type:</legend>
+			<input type="radio" name="assay-analysis" id="paraflu" value="paraflu" checked="checked"/>
+				<label for="paraflu">Paraflu</label>
+			<input type="radio" name="assay-analysis" id="flu" value="flu"/>
+				<label for="flu">Flu (Not available)</label>
+	</fieldset>
+
+	<h3>Advanced Options</h3>
+	<hr>
+	Worklist
 	<select name='worklist-options'>
-		<option value="worklist_one">Worklist One</option>
-		<option value="worklist_two">Worklist Two</option>
+		<option value="paraflu-default-worklist">Paraflu Default</option>
 	</select>
 	<br>
+	Limits
 	<select name='limit-options'>
-		<option value="limits_one">Limits One</option>
-		<option value="limits_two">Limits Two</option>
+		<option value="paraflu-default-limit">Paraflu Default</option>
 	</select>
 	<hr>
 	<output id="list"></output>
@@ -51,6 +62,8 @@ function handleFileSelect(evt) {
 }
 
 document.getElementById('file[]').addEventListener('change', handleFileSelect, false);
+
+document.getElementById("flu").disabled = true;
 </script>
 
 
