@@ -3,38 +3,54 @@
 <header>
 </header>
 
-<div id="drop_zone">Drop files here</div>
-<output id="list"></output>
+
+<form action="" method="POST" id="pqupload" enctype="multipart/form-data">
+
+	{% csrf_token %}
+
+	<input type="file" id="file[]" name="file[]" multiple/>
+	<br>
+	Analysis ID: <input type="text" id='analysis_id' name="analysis_id">
+	<br>
+	Submitter: <input type="text" id='submitter' name="submitter">
+	<br>
+	<select name='progoptions'>
+		<option value="worklist_one">Worklist One</option>
+		<option value="worklist_two">Worklist Two</option>
+	</select>
+	<br>
+	<select>
+		<option value="limits_one">Limits One</option>
+		<option value="limits_two">Limits Two</option>
+	</select>
+	<hr>
+	<output id="list"></output>
+	<br>
+	<button type="Submit">SUBMIT</button>
+</form>
+
+
+
+
 
 <script>
-
-
-
+// Checks if the browser is comptabile with HTML5 File API
+if (window.File && window.FileReader && window.FileList && window.Blob) {
+	// Browser has the FileReader API
+} else {
+	alert("The FILE APIs may not be fully supported in this browser.")
+}
 
 function handleFileSelect(evt) {
-	evt.stopPropagation();
-	evt.preventDefault();
-
-	var files = evt.dataTransfer.files;
+	var files = evt.target.files;
 	var output = [];
-	for (var i=0, f; f=files[i]; i++) {
-		output.push('<li><strong>', escape(f.name), '</strong></li>')
+	for (var i = 0, f; f = files[i]; i++) {
+		output.push('<li><strong>', escape(f.name), '</strong></li>');
 	}
-
 	document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
 }
 
-function handleDragOver(evt) {
-		evt.stopPropagation();
-		evt.preventDefault();
-		evt.dataTransfer.dropEffect = 'copy';
-}
-
-var dropZone = document.getElementById('drop_zone');
-dropZone.addEventListener('dragover', handleDragOver, false);
-dropZone.addEventListener('drop', handleFileSelect, false);
-
-
+document.getElementById('file[]').addEventListener('change', handleFileSelect, false);
 </script>
 
 

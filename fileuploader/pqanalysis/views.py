@@ -9,9 +9,11 @@ def create_timestamp():
 def add_attachment(request):
 	if request.method == "POST":
 		analysis_id = request.POST['analysis_id']
-		program_options = request.POST.getlist['progoptions']
+		program_options = request.POST.getlist('progoptions')
 		submitter = request.POST['submitter']
-		files = request.FILES.getlist('filelist')
+		files = request.FILES.getlist('file[]')
+
+		print("FILES HERE", files)
 
 		format_analysis_id = analysis_id + create_timestamp()
 
@@ -26,7 +28,7 @@ def add_attachment(request):
 
 			instance.save()
 
-		return add_attachment_done(request, analysis_id, progoptions)
+		return add_attachment_done(request, analysis_id, program_options)
 	return render(request, "pqanalysis/pqanalysis.html")
 
 def add_attachment_done(request, analysis_id, progoptions):

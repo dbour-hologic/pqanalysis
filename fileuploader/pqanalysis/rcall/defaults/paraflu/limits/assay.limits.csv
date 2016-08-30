@@ -1,0 +1,21 @@
+sample.type,Channel,threshold,direction
+"Positive Control","FAM",1200,min
+"Positive Control","HEX",2000,min
+"Positive Control","IC",500,min
+"Positive Control","RED647",400,min
+"Positive Control","ROX",1500,min
+"Panel C","FAM",1200,min
+"Panel C","HEX",2000,min
+"Panel C","IC",500,min
+"Panel C","RED647",400,min
+"Panel C","ROX",1500,min
+"Panel A","FAM",500,max
+"Panel A","HEX",500,max
+"Panel A","IC",2000,min
+"Panel A","RED647",350,max
+"Panel A","ROX",500,max
+"Negative Control","FAM",500,max
+"Negative Control","HEX",500,max
+"Negative Control","IC",2000,min
+"Negative Control","RED647",350,max
+"Negative Control","ROX",500,max
