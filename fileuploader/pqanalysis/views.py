@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect, render_to_response
 from .models import PqAttachment
+from rcall.rcaller import R_Caller
 import datetime, os
+
 
 def create_timestamp():
 	""" Creates the timestamp """
@@ -9,11 +11,10 @@ def create_timestamp():
 def add_attachment(request):
 	if request.method == "POST":
 		analysis_id = request.POST['analysis_id']
-		program_options = request.POST.getlist('progoptions')
+		worklist_options = request.POST.getlist('worklist-options')
+		limit_options = request.POST.getlist('limit-options')
 		submitter = request.POST['submitter']
 		files = request.FILES.getlist('file[]')
-
-		print("FILES HERE", files)
 
 		format_analysis_id = analysis_id + create_timestamp()
 
@@ -28,17 +29,24 @@ def add_attachment(request):
 
 			instance.save()
 
-		return add_attachment_done(request, analysis_id, program_options)
+		return add_attachment_done(request, format_analysis_id, worklist_options, limit_options)
 	return render(request, "pqanalysis/pqanalysis.html")
 
-def add_attachment_done(request, analysis_id, progoptions):
+def add_attachment_done(request, format_analysis_id, worklist_options, limit_options):
 	""" 
 		(1) Append analysis_id to R markdown output.
-		(2) See which direction to take through progoptions
-			2a. PQ Analysis
-			2b. Combine files
-		(3) Execute necessary programs
-		(4) Go to results page
+		(2) Execute necessary programs
+		(3) Go to results page
 	"""
+	print(worklist_options)
+	print(limit_options)
+
+	query_db = PqAttachment.objects.filter(analysis_id__exact = format_analysis_id)
+	files_dir = os.path.dirname(os.path.abspath(query_db.values()[0]['attachment']))
+
+	r = R_Caller('paraflu', files_dir)
+	r.set_defaults()
+	r.execute()
+
 	return render(request, "pqanalysis/pqanalysis.html")
 
