@@ -1,0 +1,426 @@
+---
+title: "PQ Report Generator"
+version: "v1.4.1"
+author: "Kyle"
+date: "`r Sys.Date()`"
+output: 
+     html_document:
+          toc: true
+params:
+     directory: "C:/Users/ks0316/Documents/PQReportCompiler"
+     assay: "paraflu"
+     worklist.id: "C:/Users/ks0316/Documents/PQReportCompiler/worklist.id.csv"
+     limits: "C:/Users/ks0316/Documents/PQReportCompiler/assay.limits.csv"
+     lof: "nonspecified"
+     analysis.id: "generic analysis.html"
+     graphing: "FVF"
+
+---
+<style>
+body {
+    position: absolute;
+    left: 10px;}
+
+table {
+    text-align: left;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th, td {
+    text-align: left;
+    padding: 8px;
+}
+
+tr:nth-child(even){background-color: #f2f2f2}
+
+th {
+    text-align: left;
+    background-color: #00008B;
+    color: white;
+}
+
+</style>
+
+#Parameters Entered
+```{r set-options, echo=FALSE, cache=FALSE}
+### test cases
+# params:
+#      directory: "T:/Public/Kyle S/PCR"
+#      assay: "paraflu"
+#      worklist.id: "C:/Users/ks0316/Documents/PQReportCompiler/worklist.id.csv"
+#      limits: "T:/CoreTeams/Radium/Assay Development_Orig/Kyle S/PQ Data/assay.limits.csv"
+#      lof: "nonspecified"
+
+# params = data.frame(directory="T:/Public/Kyle S/PCR",
+#                     assay = "paraflu",
+#                     worklist.id="T:/CoreTeams/Radium/Assay Development_Orig/Kyle S/PQ Data/worklist.id.csv",
+#                     limits="T:/CoreTeams/Radium/Assay Development_Orig/Kyle S/PQ Data/assay.limits.csv",
+#                     stringsAsFactors = FALSE)
+
+### At home testing
+# params = list(directory="C:/Users/ks0316/Documents/PQReportCompiler",
+#                     assay = "paraflu",
+#                     worklist.id="C:/Users/ks0316/Documents/PQReportCompiler/worklist.id.csv",
+#                     limits="C:/Users/ks0316/Documents/PQReportCompiler/assay.limits.csv",
+#                     lof="nonspecified",
+#                     analysis.id="generic title.html",
+#                     graphing="FVF"
+#                     # graphing="time"
+# )
+
+# if(params$lof == "nonspecified"){
+#      cat(params$directory)
+# } else if(params$directory == "nonspecified"){
+#      cat(params$lof)
+# }
+
+print(params)
+```
+
+```{r, warning=FALSE, message=FALSE, include=FALSE, cache=FALSE}
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(lubridate)
+library(stringr)
+library(formattable)
+library(DT)
+library(htmltools)
+library(knitr)
+# setwd("T:/CoreTeams/Radium/Assay Development_Orig/Kyle S/PQ Data")
+# setwd("C:/Users/ks0316/Documents/PQReportCompiler")
+source(file="./allFunctions2.R")
+wlid = read.csv(params$worklist.id, stringsAsFactors = FALSE)
+if(params$limits != "nonspecified"){
+     assay.limits = read.csv(params$limits, stringsAsFactors = FALSE)
+}
+
+if(params$lof == "nonspecified"){
+     setwd(params$directory)
+     lof = list.files(pattern="@DI", path=params$directory, full.names = T)
+
+     a = basename(lof)
+     b=strsplit(a, split="_")
+     c=lapply(b, `[[`, 1)
+     d = unlist(c)
+     filt.v=!grepl(pattern="@DI", d)
+     lof = lof[filt.v] #filtered list of files
+     rm(a, b, c, d, filt.v)
+} else{
+     lof = params$lof
+}
+### test case
+# lof = c("C:/Users/ks0316/Documents/_Mucin PQs/20160714-1330/@DI2090001330-20160715-001920-001330-20160714-05-07.csv",
+# "C:/Users/ks0316/Documents/PQReportCompiler/@DI209000001-20160526-044112-001099-20160525-10.csv",
+# "C:/Users/ks0316/Documents/PQReportCompiler/@DI209000001-20160603-164000-000001-20160602-06.csv",
+# # "T:/Public/Kyle S/PCR/@DI209000001-20160622-161243-000001-20160621-05.csv",
+# "C:/Users/ks0316/Documents/PQReportCompiler/@DI209000001-20160613-161934-000001-20160602-06.csv",
+# "C:/Users/ks0316/Documents/PQReportCompiler/@DI209000001-20160622-161243-000001-20160621-05.csv")
+# "T:/CoreTeams/Radium/Assay Development_Orig/Kyle S/PQ Data/_Assay/2016_06_02 F51 PQ/@DI209000001-20160603-164000-000001-20160602-06.csv")
+pq0 = appender(lof, grabber)
+
+if(all(pq0$list.output$loaded == "LOADED")){
+     pq0 = pq0$pq.data
+     cat("All files have been loaded.")
+} else{
+     pq0 = pq0$pq.data
+     cat("Some files had issues being loaded, see output.")
+     print(pq0$list.output$files[pq0$list.output$loaded != "LOADED"])
+}
+
+#Round down RFU Range
+pq0$RFU.Range = floor(pq0$RFU.Range)
+pq0$ct = signif(pq0$ct, digits=4)
+
+### Special Escape characters
+pq0$Sample.Name = gsub("`", "battick", pq0$Sample.Name)
+pq0$Sample.Name = gsub("\\\\", "double-slash", pq0$Sample.Name)
+
+# pq = categorizer(pq, params$assay)
+pq0 = categorizer(pq0, inputfile = wlid)
+
+# pq0 %>% select(Sample.Name, sample.type) %>% utils::View()
+
+uncat = pq0 %>%
+     group_by(filename) %>%
+     summarise(Uncategorized = sum(is.na(sample.type)))
+
+### Will implement code in next version with Shiny
+# setwd(dirname(params$file))
+# temp.file = list.files(pattern="TCYC.csv$", recursive = TRUE, full.names = TRUE)
+# tcyc_raw = tcyc_reader(temp.file, pq0)
+
+if(!exists(x="assay.limits")){
+     assay.limits = structure(list(sample.type = c("Positive Control", "Positive Control", 
+     "Positive Control", "Positive Control", "Positive Control", "Panel C", 
+     "Panel C", "Panel C", "Panel C", "Panel C", "Panel A", "Panel A", 
+     "Panel A", "Panel A", "Panel A", "Negative Control", "Negative Control", 
+     "Negative Control", "Negative Control", "Negative Control"), 
+         Channel = c("FAM", "HEX", "IC", "RED647", "ROX", "FAM", "HEX", 
+         "IC", "RED647", "ROX", "FAM", "HEX", "IC", "RED647", "ROX", 
+         "FAM", "HEX", "IC", "RED647", "ROX"), threshold = c(1200L, 
+         2000L, 500L, 400L, 1500L, 1200L, 2000L, 500L, 400L, 1500L, 
+         500L, 500L, 2000L, 350L, 500L, 500L, 500L, 2000L, 350L, 500L
+         ), direction = c("min", "min", "min", "min", "min", "min", 
+         "min", "min", "min", "min", "max", "max", "min", "max", "max", 
+         "max", "max", "min", "max", "max")), .Names = c("sample.type", 
+     "Channel", "threshold", "direction"), class = "data.frame", row.names = c(NA, 
+     -20L))     
+}
+
+## Filtering logical vectors
+pslv = quote(sample.type == "Panel C" | sample.type == "Positive Control")
+nslv = quote(sample.type == "Panel A" | sample.type == "Negative Control")
+
+## Data type manipulation
+# pq0$sample.type = as.factor(sort(as.character(pq0$sample.type)))
+# pq0$Channel = as.factor(sort(as.character(pq0$Channel)))
+# assay.limits$sample.type = as.factor(sort(as.character(assay.limits$sample.type)))
+# assay.limits$Channel = as.factor(sort(as.character(assay.limits$Channel)))
+
+pq0[,c("sample.type", "Channel")] = lapply(pq0[,c("sample.type", "Channel")], as.character)
+assay.limits[,c("sample.type", "Channel")] = lapply(assay.limits[,c("sample.type", "Channel")], as.character)
+
+pq = left_join(pq0, assay.limits, by=c("sample.type", "Channel"))
+
+pq = pq %>%
+     mutate(pass = ifelse((direction=="min" & RFU.Range > threshold) | (direction=="max" & RFU.Range < threshold), "PASS", "FAIL")) %>%
+     mutate(hits=ifelse(pass == "PASS", 1, 0))
+```
+
+# PQ Result
+``` {R, result='asis', echo=FALSE, cache=FALSE, warning=FALSE, message=FALSE}
+summary.pq = pq %>%
+     group_by(filename, FusionAssayVersion, pantherSN, Channel, sample.type) %>%
+     summarise(Mean.RFU.Range = mean(RFU.Range, na.rm=T), Max.RFU.Range = max(RFU.Range, na.rm=T), Min.RFU.Range=min(RFU.Range, na.rm=T),
+               N = n(), Positive = sum(hits),
+               Mean.Ct = mean(ct, na.rm=T), Sd.Ct = sd(ct, na.rm=T),
+               Max.Ct = max(ct, na.rm=T), Min.Ct = min(ct, na.rm=T)) %>%
+     mutate(CV = Sd.Ct/Mean.Ct*100, Pass.Fail = ifelse(N == Positive, 1, ifelse(Channel == "RED647" & N-Positive <= 2, 1, 0)))
+
+summary1.pq = pq %>%
+     group_by(Software.Revision, Channel, sample.type) %>%
+     summarise(Mean.RFU.Range = mean(RFU.Range, na.rm=T), Max.RFU.Range = max(RFU.Range, na.rm=T), Min.RFU.Range=min(RFU.Range, na.rm=T),
+               N = n(), Positive = sum(hits),
+               Mean.Ct = mean(ct, na.rm=T), Sd.Ct = sd(ct, na.rm=T),
+               Max.Ct = max(ct, na.rm=T), Min.Ct = min(ct, na.rm=T)) %>%
+     mutate(CV = Sd.Ct/Mean.Ct*100, Pass.Fail = ifelse(N == Positive, "PASS", ifelse(Channel == "RED647" & N-Positive <= 2, "PASS", "FAIL")), Hits = paste(Positive, N, sep="/")) %>%
+     ungroup() %>% select(Channel, sample.type, Mean.RFU.Range, Max.RFU.Range, Min.RFU.Range, Mean.Ct, Sd.Ct, Max.Ct, Min.Ct, CV, Hits) %>%
+     arrange(sample.type)
+
+summary1.pq$CV = percent(summary1.pq$CV)/100
+summary1.pq$Mean.RFU.Range = floor(summary1.pq$Mean.RFU.Range)
+summary1.pq[,c("Mean.Ct", "Sd.Ct")] = lapply(summary1.pq[,c("Mean.Ct", "Sd.Ct")], signif, digits=4)
+
+condensed.summary =
+     summary.pq %>%
+     ungroup() %>%
+     group_by(filename, FusionAssayVersion, pantherSN) %>%
+     summarise(PQ.PF=sum(Pass.Fail), count = n()) %>%
+     mutate(Chemistry.Pass =ifelse(PQ.PF == count, 1, 0))
+
+# flaggregator(df = pq, assay=params$assay) %>% utils::View()
+
+c.summary2 = left_join(condensed.summary, flaggregator(df = pq, assay=params$assay), by="filename")
+c.summary2 = other_flags(c.summary2)
+
+if(params$assay=="paraflu"){
+     c.summary3 = c.summary2 %>%
+          group_by(filename, FusionAssayVersion, pantherSN, Flags) %>%
+          summarise(Result = ifelse(Chemistry.Pass == 1 & VVFS <= 6 & other.flags == TRUE, "PASS",
+                                    ifelse(other.flags == FALSE, "PENDING", "FAIL")))
+} else{
+     c.summary3 = c.summary2 %>%
+          group_by(filename, FusionAssayVersion, pantherSN, Flags) %>%
+          summarise(Result = "PENDING")
+}
+
+c.summary3$Uncategorized.Samples = uncat$Uncategorized
+
+datatable(c.summary3, list(Result = formatter("span",
+style = x ~ ifelse(x == "PASS", style(color="green"),
+ifelse(x =="PENDING", style(color="orange"), style(color="red"))))))
+```
+
+# Summary statistics of PQ
+``` {R, result='asis', echo=FALSE, cache=FALSE}
+s1.pq.t = summary1.pq %>%
+     filter(grepl("Panel", sample.type)) %>%
+     select(sample.type, Channel, everything()) %>%
+     rename(Sample.Type=sample.type) %>%
+     t()
+s1.pq.t[is.na(s1.pq.t)] = "-"
+formattable(as.data.frame(s1.pq.t))
+# summary1.pq$filename = as.factor(summary1.pq$filename)
+
+s2.pq.t = summary1.pq %>%
+     filter(grepl("Control", sample.type)) %>%
+     select(sample.type, Channel, everything()) %>%
+     rename(Sample.Type=sample.type) %>%
+     t()
+s2.pq.t[is.na(s2.pq.t)] = "-"
+formattable(as.data.frame(s2.pq.t))
+# summary1.pq$filename = as.factor(summary1.pq$filename)
+# temp = split(summary1.pq, summary1.pq$filename, drop=TRUE)
+# 
+# show_plot <- function(plot_object){
+#   div(style="margin:auto;text-align:center", plot_object)
+# }
+```
+
+# Pass / Fail Criteria
+##Assay Defined Thresholds
+``` {R, result='asis', echo=FALSE}
+assay.limits.t = assay.limits %>%
+     filter(grepl("Panel", sample.type)) %>%
+     mutate(Threshold=ifelse(direction=="min", paste0(">", threshold), paste0("<", threshold))) %>%
+     rename(Sample.Type=sample.type) %>%
+     select(Sample.Type, Channel, Threshold) %>%
+     t()
+     
+formattable(as.data.frame(assay.limits.t))
+```
+
+# Positive Samples
+Raw RFU.Range data of Panel C and Positive Control (if present):
+``` {R, result='asis', echo=FALSE, cache=FALSE}
+long.to.wide = function(df=pq){
+     df=pq
+     spreaded = df %>%
+          select(-pass, -threshold, -direction) %>%
+          unite(col=metrics, ct, tslope, RFU.Range, EstimatedBaseline, hits) %>%#utils::View()
+          spread(Channel, metrics)
+     spreaded2 = spreaded %>%
+          separate(col="FAM", into=c("FAM.ct", "FAM.tslope", "FAM.rr", "FAM.eb", "FAM.result"), sep="_") %>%
+          separate(col="HEX", into=c("HEX.ct", "HEX.tslope", "HEX.rr", "HEX.eb", "HEX.result"), sep="_") %>%
+          separate(col="IC", into=c("IC.ct", "IC.tslope", "IC.rr", "IC.eb", "IC.result"), sep="_") %>%
+          separate(col="RED647", into=c("RED647.ct", "RED647.tslope", "RED647.rr", "RED647.eb", "RED647.result"), sep="_") %>%
+          separate(col="ROX", into=c("ROX.ct", "ROX.tslope", "ROX.rr", "ROX.eb", "ROX.result"), sep="_")
+     spreaded3 = spreaded2 %>% ungroup %>% group_by(Run.ID, FusionTestOrder) %>% mutate(replicate=seq_along(FusionTestOrder))
+     return(spreaded3)
+}
+pq.s = long.to.wide(pq)
+
+if(params$assay=="paraflu"){
+     temp.table =
+          pq.s %>% ungroup() %>%
+          filter(pslv) %>%
+          mutate(FAM.Result = ifelse(FAM.result == 1, "POS", "NEG"),
+                 HEX.Result = ifelse(HEX.result == 1, "POS", "NEG"),
+                 IC.Result = ifelse(IC.result == 1, "POS", "NEG"),
+                 RED647.Result = ifelse(RED647.result == 1, "POS", "NEG"),
+                 ROX.Result = ifelse(ROX.result == 1, "POS", "NEG")) %>%
+          select(Sample.Name, Flag, FusionTestOrder, test.order, WellID, replicate,
+                 FAM.ct:FAM.eb, FAM.Result, HEX.ct:HEX.eb, HEX.Result,
+                 IC.ct:IC.eb, IC.Result, RED647.ct:RED647.eb, RED647.Result,
+                 ROX.ct:ROX.eb, ROX.Result, filename, ud.filename)
+
+     hiding.vect = which(colnames(temp.table) %in% c("FAM.ct", "FAM.tslope", "FAM.eb",
+                                       "HEX.ct", "HEX.tslope", "HEX.eb",
+                                       "IC.ct", "IC.tslope", "IC.eb",
+                                       "RED647.ct", "RED647.tslope", "RED647.eb",
+                                       "ROX.ct", "ROX.tslope", "ROX.eb",
+                                       "filename", "replicate", "ud.filename"))
+     datatable(
+       temp.table,
+       extensions = c('Buttons'),
+       options = list(dom = 'Bfrtip', buttons = c('copy', 'csv', I('colvis')), pageLength = 10,
+                      columnDefs = list(list(targets = hiding.vect,
+                                             visible = FALSE)))
+       )
+} else{
+     cat("Not supported for other assays")
+}
+```
+
+# Negative Samples
+Raw RFU.Range data of Panel A and Negative Control (if present):
+``` {R, result='asis', echo=FALSE, cache=FALSE}
+if(params$assay == "paraflu"){
+     temp.table.2 = pq.s %>% ungroup() %>%
+          filter(nslv) %>%
+          mutate(FAM.Result = ifelse(FAM.result == 1, "NEG", "POS"),
+                 HEX.Result = ifelse(HEX.result == 1, "NEG", "POS"),
+                 IC.Result = ifelse(IC.result == 1, "POS", "NEG"),
+                 RED647.Result = ifelse(RED647.result == 1, "NEG", "POS"),
+                 ROX.Result = ifelse(ROX.result == 1, "NEG", "POS")) %>%
+          select(Sample.Name, Flag, FusionTestOrder, test.order, WellID, replicate,
+                 FAM.ct:FAM.eb, FAM.Result, HEX.ct:HEX.eb, HEX.Result,
+                 IC.ct:IC.eb, IC.Result, RED647.ct:RED647.eb, RED647.Result,
+                 ROX.ct:ROX.eb, ROX.Result, filename, ud.filename)
+
+     datatable(
+       temp.table.2, 
+       extensions = c('Buttons'),
+       options = list(dom = 'Bfrtip', buttons = c('copy', 'csv', I('colvis')), pageLength = 10,
+                      columnDefs = list(list(targets = hiding.vect,
+                                             visible = FALSE)))
+       )
+} else{
+     cat("Functionality not supported.")
+}
+```
+
+#Summary Plots
+
+```{R, result='asis', echo=FALSE, cache=FALSE}
+#Chunk for computation
+                    # graphing="FVF"
+                    # graphing="time"
+
+
+if(params$graphing == "FVF"){
+     
+     print("Corresponding Xgroup to filename:")
+     print(levels(as.factor(pq$filename)))
+     
+     pq$filename = as.numeric(as.factor(pq$filename))
+
+     p1 = summary.pq.plot(dat=pq, xvar="sample.type", yvar="RFU.Range", color.by="sample.type", ygroups="Channel", xgroups="filename")
+     
+     pq$ct[is.na(pq$ct)] = 45
+     p2 = summary.pq.plot(dat=pq, xvar="sample.type", yvar="ct", color.by="sample.type", ygroups="Channel", xgroups="filename", 
+                     accept.neg=data.frame(Channel=c("FAM", "HEX", "ROX", "RED647", "IC"), AcceptVal=c(35,35,35,35,35)),
+                     accept.pos=data.frame(Channel=c("FAM", "HEX", "ROX", "RED647", "IC"), AcceptVal=c(35,35,35,35,35)))
+     
+     p3 = summary.pq.plot(dat=pq, xvar="sample.type", yvar="EstimatedBaseline", color.by="sample.type", ygroups="Channel", xgroups="filename")
+} else if(params$graphing == "time"){
+     pq$completion.date = as.Date(pq$completion.date)
+     
+     p1 = summary.pq.plot(dat=pq, xvar="sample.type", yvar="RFU.Range", color.by="sample.type", ygroups="Channel", xgroups="completion.date")
+     
+     pq$ct[is.na(pq$ct)] = 45
+     p2 = summary.pq.plot(dat=pq, xvar="sample.type", yvar="ct", color.by="sample.type", ygroups="Channel", xgroups="completion.date", 
+                     accept.neg=data.frame(Channel=c("FAM", "HEX", "ROX", "RED647", "IC"), AcceptVal=c(35,35,35,35,35)),
+                     accept.pos=data.frame(Channel=c("FAM", "HEX", "ROX", "RED647", "IC"), AcceptVal=c(35,35,35,35,35)))
+     
+     p3 = summary.pq.plot(dat=pq, xvar="sample.type", yvar="EstimatedBaseline", color.by="sample.type", ygroups="Channel", xgroups="completion.date")
+} else if(params$graphing == "instrument"){
+     p1 = summary.pq.plot(dat=pq, xvar="sample.type", yvar="RFU.Range", color.by="sample.type", ygroups="Channel", xgroups="pantherSN")
+     
+     pq$ct[is.na(pq$ct)] = 45
+     p2 = summary.pq.plot(dat=pq, xvar="sample.type", yvar="ct", color.by="sample.type", ygroups="Channel", xgroups="pantherSN", 
+                     accept.neg=data.frame(Channel=c("FAM", "HEX", "ROX", "RED647", "IC"), AcceptVal=c(35,35,35,35,35)),
+                     accept.pos=data.frame(Channel=c("FAM", "HEX", "ROX", "RED647", "IC"), AcceptVal=c(35,35,35,35,35)))
+     
+     p3 = summary.pq.plot(dat=pq, xvar="sample.type", yvar="EstimatedBaseline", color.by="sample.type", ygroups="Channel", xgroups="pantherSN")
+} else{
+     print("Not a valid option.")
+}
+```
+
+##RFU Range
+```{R, fig.width=12, fig.height=6, echo=FALSE, cache=FALSE}
+print(p1)
+```
+
+##Ct Non-Normalized
+```{R, fig.width=12, fig.height=6, echo=FALSE, cache=FALSE}
+print(p2)
+```
+
+##Estimated Baseline
+```{R, fig.width=12, fig.height=6, echo=FALSE, cache=FALSE}
+print(p3)
+```

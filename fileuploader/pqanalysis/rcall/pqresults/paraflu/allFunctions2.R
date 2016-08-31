@@ -40,7 +40,7 @@ appender = function(list_file, defined.function){
 }
 grabber = function(file_path){
      require(tools); require(xlsx)
-     #file_path = clinical.files[1]
+     # file_path = lof[1]
      if(file_ext(file_path) == "csv"){
           a=read.csv(file_path)
      } else{
@@ -48,18 +48,28 @@ grabber = function(file_path){
      }
      cat("File is ", basename(file_path))
      cat("\n")
+     
+     # names(a)[names(a) == "ï..Specimen.Barcode"] = "Sample"
      names(a)[1] = "Sample"
-     names(a)[82] = "test.order"
+     names(a)[names(a) == "Test.order.."] = "test.order"
+     # names(a)[82] = "test.order"
      names(a)[names(a) == "LR_Ct_NonNormalized"] = "ct"
      names(a)[names(a) == "LR_TSlope_NonNormalized"] = "tslope"
      a = a[!(grepl("end", a$Sample)),]
      
      #data-extraction from filename
-     
      a$filepath = file_path
-     a$filename = basename(file_path)
-     temp = strsplit(basename(a$filename), split="-")
-     a$pantherSN = substr(unlist(temp[1])[1], 4, nchar(unlist(temp[1])[1]))
+     #a$filename = basename(file_path)
+     
+     ### New process to extract serial number without destroying data storage
+     temp = strsplit(basename(a$filepath), split="_")
+     temp2 = lapply(temp, `[[`, 2)
+     temp3 = unlist(temp2)
+     temp4 = strsplit(temp3, split="-")
+     temp5 = unlist(temp4)
+     a$pantherSN = substr(temp5[1], 4, nchar(temp5[1]))
+     a$ud.filename = lapply(temp, `[[`, 1)[[1]]
+     a$filename = lapply(temp, `[[`, 2)[[1]]
      
      #metrics of interest
      a$ct = as.double(as.character(a$ct))
@@ -80,7 +90,8 @@ grabber = function(file_path){
      
      a = subset(a, select=c(completion.date, pipette.time, Sample, Sample.Name, Run.ID, test.order, FusionTestOrder, WellID, Flag,
                             Channel, RFU.Range, ct, EstimatedBaseline, tslope,
-                            FCROBS, FEROBS, FusionAssayName, FusionAssayVersion, Software.Revision, filepath, filename, pantherSN))
+                            FCROBS, FEROBS, FusionAssayName, FusionAssayVersion, Software.Revision,
+                            filepath, filename, ud.filename, pantherSN))
      a
 }
 multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
@@ -228,10 +239,6 @@ tcyc_reader = function(x, pcrexport){
                #rename(tcyc, test.order=testorder.id)
                tcyc$test.order = tcyc$testorder.id
                
-               
-               
-               
-               
                lookup=data.frame(
                     color=c("FAM", "HEX", "Red647", "Red677", "ROX"),
                     Channel=c("FAM", "HEX", "RED647", "IC", "ROX"),
@@ -279,25 +286,29 @@ raw_plot = function(pq_file, tcyc_file){
      return(temp)
 }
 flaggregator = function(df = fleet, assay="paraflu"){
-     df = pq
-     assay = "paraflu"
+     # df = pq
+     # assay = "paraflu"
      if(assay=="paraflu"){
-          df %>% select(-pass, -hits) %>% unite(col=metrics, ct, tslope, RFU.Range, EstimatedBaseline) %>% spread(Channel, metrics) -> spreaded
-          spreaded %>%
-               separate(col="FAM", into=c("FAM.ct", "FAM.tslope", "FAM.rr", "FAM.eb"), sep="_") %>%
-               separate(col="HEX", into=c("HEX.ct", "HEX.tslope", "HEX.rr", "HEX.eb"), sep="_") %>%
-               separate(col="IC", into=c("IC.ct", "IC.tslope", "IC.rr", "IC.eb"), sep="_") %>%
-               separate(col="RED647", into=c("RED647.ct", "RED647.tslope", "RED647.rr", "RED647.eb"), sep="_") %>%
-               separate(col="ROX", into=c("ROX.ct", "ROX.tslope", "ROX.rr", "ROX.eb"), sep="_") -> spreaded2
-          spreaded2 %>% ungroup %>% group_by(filename, FusionTestOrder) %>% mutate(replicate=seq_along(FusionTestOrder)) -> spreaded3
+          spreaded = df %>%
+               select(-pass, -threshold, -direction) %>%
+               unite(col=metrics, ct, tslope, RFU.Range, EstimatedBaseline, hits) %>%
+               spread(Channel, metrics)
+          spreaded2 = spreaded %>%
+               separate(col="FAM", into=c("FAM.ct", "FAM.tslope", "FAM.rr", "FAM.eb", "FAM.result"), sep="_") %>%
+               separate(col="HEX", into=c("HEX.ct", "HEX.tslope", "HEX.rr", "HEX.eb", "HEX.result"), sep="_") %>%
+               separate(col="IC", into=c("IC.ct", "IC.tslope", "IC.rr", "IC.eb", "IC.result"), sep="_") %>%
+               separate(col="RED647", into=c("RED647.ct", "RED647.tslope", "RED647.rr", "RED647.eb", "RED647.result"), sep="_") %>%
+               separate(col="ROX", into=c("ROX.ct", "ROX.tslope", "ROX.rr", "ROX.eb", "ROX.result"), sep="_")
+          spreaded3 = spreaded2 %>% ungroup %>% group_by(Run.ID, FusionTestOrder) %>% mutate(replicate=seq_along(FusionTestOrder))
      } else{
-          df %>% select(-pass, -hits) %>% unite(col=metrics, ct, tslope, RFU.Range, EstimatedBaseline) %>% spread(Channel, metrics) -> spreaded
-          spreaded %>%
-               separate(col="FAM", into=c("FAM.ct", "FAM.tslope", "FAM.rr", "FAM.eb"), sep="_") %>%
-               separate(col="HEX", into=c("HEX.ct", "HEX.tslope", "HEX.rr", "HEX.eb"), sep="_") %>%
-               separate(col="IC", into=c("IC.ct", "IC.tslope", "IC.rr", "IC.eb"), sep="_") %>%
-               separate(col="ROX", into=c("ROX.ct", "ROX.tslope", "ROX.rr", "ROX.eb"), sep="_") -> spreaded2
-          spreaded2 %>% ungroup %>% group_by(filename, FusionTestOrder) %>% mutate(replicate=seq_along(FusionTestOrder)) -> spreaded3
+          # df %>% select(-pass, -hits) %>% unite(col=metrics, ct, tslope, RFU.Range, EstimatedBaseline) %>% spread(Channel, metrics) -> spreaded
+          # spreaded %>%
+          #      separate(col="FAM", into=c("FAM.ct", "FAM.tslope", "FAM.rr", "FAM.eb"), sep="_") %>%
+          #      separate(col="HEX", into=c("HEX.ct", "HEX.tslope", "HEX.rr", "HEX.eb"), sep="_") %>%
+          #      separate(col="IC", into=c("IC.ct", "IC.tslope", "IC.rr", "IC.eb"), sep="_") %>%
+          #      separate(col="ROX", into=c("ROX.ct", "ROX.tslope", "ROX.rr", "ROX.eb"), sep="_") -> spreaded2
+          # spreaded2 %>% ungroup %>% group_by(filename, FusionTestOrder) %>% mutate(replicate=seq_along(FusionTestOrder)) -> spreaded3
+          return("Feature is not supported.")
      }
      flags = list(appender = function(df){
           lv = names(table(df["Flag"])) != ""
@@ -320,8 +331,8 @@ flaggregator = function(df = fleet, assay="paraflu"){
           e = sum(as.vector(b2[c.lv]))
           return(e)
      })
-     spreaded2$Software.Revision = as.character(spreaded2$Software.Revision)
-     zzz = split(spreaded2, spreaded2$filename)
+     spreaded2$Software.Revision = as.character(spreaded2$Software.Revision) ###Spreaded2 is a less processed form of PQ
+     zzz = split(spreaded2, spreaded2$filename) ### Will use this eventually for joining
      temp.count = lapply(zzz, FUN=flags$VVFS_count)
      temp.appended = lapply(zzz, FUN=flags$appender)
      temp2 = unlist(temp.appended)
