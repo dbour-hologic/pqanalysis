@@ -22,14 +22,14 @@ def upload_to(instance, filename):
 	filename_base, filename_ext = os.path.splitext(filename)
 
 	# new_implentation
-	# return save_directory + "/" + instance.analysis_id + "_" + filename_base + filename_ext.lower()
+	return "pqresults/results/" + save_directory + "/" + instance.analysis_id + "_" + filename_base + filename_ext.lower()
 	# old_implementation - before name change
-	return "pqresults/" + save_directory + "/" + filename_base + filename_ext.lower()
+	# return "pqresults/" + save_directory + "/" + filename_base + filename_ext.lower()
 
 class PqAttachment(models.Model):
 	analysis_id = models.CharField(max_length=100)
 	file_name = models.CharField(max_length=100)
-	attachment = models.FileField(upload_to=upload_to)
+	attachment = models.FileField(upload_to=upload_to, max_length=1000)
 	submitter = models.CharField(max_length=100)
 	date_submitted = models.DateField(auto_now_add=True)
 

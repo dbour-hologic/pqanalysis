@@ -15,6 +15,7 @@ def add_attachment(request):
 		worklist_options = request.POST.getlist('worklist-options')[0]
 		limit_options = request.POST.getlist('limit-options')[0]
 		assay_options = request.POST.getlist('assay-analysis')[0]
+		graph_options = request.POST.getlist('graph-options')[0]
 		submitter = request.POST['submitter']
 		files = request.FILES.getlist('file[]')
 
@@ -31,10 +32,10 @@ def add_attachment(request):
 
 			instance.save()
 
-		return add_attachment_done(request, assay_options, format_analysis_id, worklist_options, limit_options)
+		return add_attachment_done(request, assay_options, format_analysis_id, worklist_options, limit_options, graph_options)
 	return render(request, "pqanalysis/pqanalysis.html")
 
-def add_attachment_done(request, assay, format_analysis_id, worklist_options, limit_options):
+def add_attachment_done(request, assay, format_analysis_id, worklist_options, limit_options, graph_options):
 	""" 
 		(1) Append analysis_id to R markdown output.
 		(2) Execute necessary programs
@@ -48,7 +49,7 @@ def add_attachment_done(request, assay, format_analysis_id, worklist_options, li
 
 	if assay == 'paraflu':
 
-		r = R_Caller('paraflu', files_dir)
+		r = R_Caller('paraflu', files_dir, format_analysis_id, graph_options)
 
 		if worklist_options == 'paraflu-default-worklist' and limit_options == 'paraflu-default-limit':
 			r.set_defaults()
@@ -63,22 +64,32 @@ def add_attachment_done(request, assay, format_analysis_id, worklist_options, li
 			logs = r.execute()
 		else:
 			logs = r.execute(default=False, data_dir=files_dir, assay_type='paraflu', wrk_list=worklist_options,
-					  limits_list=limit_options)
+					  limits_list=limit_options, graphing_type=graph_options)
+
+	
+
+	log_str = ""
+
+	run_completed = True
+
+	while True:
+
+	    line = logs.stdout.readline()
+	    log_str += line + "\n"
+
+	    if "Execution halted" in line:
+	        print("FOUND AN ERROR!.")
+	        run_completed = False
+	        break
+
+	    if line == '':
+	        break
+
+	if not run_completed:
+		return render(request, "pqanalysis/pqerror.html", {"error_out":log_str})
 
 	program_timed_out = shuttle_dir('paraflu')
-	if program_timed_out:
-		
-		log_str = ""
 
-		while True:
-			line = logs.stdout.readline()
-			if line != '':
-				log_str += line.rstrip()
-				log_str += "\n"
-			else:
-				break
-
-		return render(request, "pqanalysis/pqerror.html", {"error_out":log_str})
 	return view_results(request)
 
 
@@ -90,7 +101,7 @@ def shuttle_dir(assay_location):
 
 	BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 	GET_DATA = os.path.join(BASE_DIR, 'rcall', 'pqresults', assay_location)
-	SAVE_DATA = os.path.join(settings.MEDIA_ROOT, 'pqresults')
+	SAVE_DATA = os.path.join(settings.MEDIA_ROOT, 'pqresults', 'results')
 
 	que = []
 
@@ -100,7 +111,7 @@ def shuttle_dir(assay_location):
 	timed_out = True
 
 	# Maximum waiting time of 20 seconds before timing out.
-	for counts in range(60):
+	for counts in range(480):
 
 		for results in os.listdir(GET_DATA):
 			if results.endswith('.html'):
@@ -116,19 +127,20 @@ def shuttle_dir(assay_location):
 		for pq_files in que:
 			# (1) Here's where you look up the file and save to database
 			# (2) Here's where you move the file
-			shutil.move(os.path.join(GET_DATA, pq_files), SAVE_DATA)
+			try:
+				shutil.move(os.path.join(GET_DATA, pq_files), SAVE_DATA)
+			except IOError:
+				print("File has already moved.")
 
 	return timed_out
 
 def view_results(request):
 
-
-	
-	SAVE_DATA = os.path.join(settings.MEDIA_ROOT, 'pqresults')
+	SAVE_DATA = os.path.join(settings.MEDIA_ROOT, 'pqresults', 'results')
 
 	file_dict = {}
 
 	for files in os.listdir(SAVE_DATA):
 		if files.endswith('.html'):
-			file_dict[files] = os.path.join('pqresults', files)
+			file_dict[files] = os.path.join('pqresults', 'results', files)
 	return render(request, 'pqanalysis/pqresults.html', {'file_dict':file_dict})
