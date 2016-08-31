@@ -284,7 +284,7 @@ formattable(as.data.frame(assay.limits.t))
 
 # Positive Samples
 Raw RFU.Range data of Panel C and Positive Control (if present):
-``` {R, result='asis', echo=FALSE, cache=FALSE, warning=FALSE, message=FALSE}
+``` {R, result='asis', echo=FALSE, cache=FALSE}
 long.to.wide = function(df=pq){
      df=pq
      spreaded = df %>%
@@ -336,7 +336,7 @@ if(params$assay=="paraflu"){
 
 # Negative Samples
 Raw RFU.Range data of Panel A and Negative Control (if present):
-``` {R, result='asis', echo=FALSE, cache=FALSE, warning=FALSE, message=FALSE}
+``` {R, result='asis', echo=FALSE, cache=FALSE}
 if(params$assay == "paraflu"){
      temp.table.2 = pq.s %>% ungroup() %>%
           filter(nslv) %>%

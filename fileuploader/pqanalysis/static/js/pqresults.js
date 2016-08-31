@@ -1,3 +1,5 @@
 $(document).ready(function() {
-	$('#pqresultstable').DataTable();
+	$('#pqresultstable').DataTable({
+		"order":[[0,'desc']]
+	});
 })

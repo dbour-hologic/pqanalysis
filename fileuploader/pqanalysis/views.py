@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, render_to_response
 from django.conf import settings
-from .models import PqAttachment
+from .models import PqAttachment, PqResults
 from rcall.rcaller import R_Caller
 import datetime, os
 
@@ -127,8 +127,7 @@ def shuttle_dir(assay_location):
 		for pq_files in que:
 			# (1) Here's where you look up the file and save to database
 			pq = PqAttachment.objects.filter(analysis_id__exact = pq_files.replace(".html",""))
-
-
+			pq[0].pqresults_set.create(pq_file_name=pq_files, file_dir=os.path.join(GET_DATA, pq_files))
 			# (2) Here's where you move the file
 			try:
 				shutil.move(os.path.join(GET_DATA, pq_files), SAVE_DATA)
@@ -146,9 +145,13 @@ def view_results(request):
 	for files in os.listdir(SAVE_DATA):
 		if files.endswith('.html'):
 			try:
-				query_result = PqAttachment.objects.filter(analysis_id__exact = files.replace(".html",""))				
-				# file_dict[files] = query_result[0] - reimplement after database
-				file_dict[files] = os.path.join('pqresults', 'results', files)
+				query_result = PqAttachment.objects.filter(analysis_id__exact = files.replace(".html",""))
+				# search_this = query_result[0].analysis_id.replace(".html","")
+				# query_for_html = PqResults.objects.filter(pq_file_name__exact = search_this)
+				# query_for_html = PqResults.objects.all().values()[0]
+				# print(">>", query_for_html['file_dir'])
+				file_dict[files] = {"attachment":query_result[0],"html_dir":os.path.join('pqresults','results',files)}
+				# file_dict[files] = os.path.join('pqresults', 'results', files)
 			except IndexError:
 				# Have to create a fake object here to resemble above result for templating reasons
 				file_dict[files] = {"No data found"}
