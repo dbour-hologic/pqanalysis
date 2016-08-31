@@ -22,7 +22,7 @@ def upload_to(instance, filename):
 	filename_base, filename_ext = os.path.splitext(filename)
 
 	# new_implentation
-	return "pqresults/results/" + save_directory + "/" + instance.analysis_id + "_" + filename_base + filename_ext.lower()
+	return "pqresults/" + save_directory + "/" + instance.analysis_id + "_" + filename_base + filename_ext.lower()
 	# old_implementation - before name change
 	# return "pqresults/" + save_directory + "/" + filename_base + filename_ext.lower()
 
@@ -36,7 +36,7 @@ class PqAttachment(models.Model):
 class PqResults(models.Model):
 	pqresults = models.ForeignKey(PqAttachment, on_delete=models.CASCADE)
 	pq_file_name = models.CharField(max_length=100)
-	file_dir = models.FileField(upload_to=None)
+	file_dir = models.FileField(upload_to=None, max_length=1000)
 
 class CombineResults(models.Model):
 	combine_results = models.ForeignKey(PqAttachment, on_delete=models.CASCADE)

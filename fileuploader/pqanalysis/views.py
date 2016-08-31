@@ -110,7 +110,7 @@ def shuttle_dir(assay_location):
 
 	timed_out = True
 
-	# Maximum waiting time of 20 seconds before timing out.
+	# Maximum waiting time of 480 seconds before timing out.
 	for counts in range(480):
 
 		for results in os.listdir(GET_DATA):
@@ -126,6 +126,9 @@ def shuttle_dir(assay_location):
 	if not timed_out:
 		for pq_files in que:
 			# (1) Here's where you look up the file and save to database
+			pq = PqAttachment.objects.filter(analysis_id__exact = pq_files.replace(".html",""))
+
+
 			# (2) Here's where you move the file
 			try:
 				shutil.move(os.path.join(GET_DATA, pq_files), SAVE_DATA)
@@ -142,5 +145,13 @@ def view_results(request):
 
 	for files in os.listdir(SAVE_DATA):
 		if files.endswith('.html'):
-			file_dict[files] = os.path.join('pqresults', 'results', files)
+			try:
+				query_result = PqAttachment.objects.filter(analysis_id__exact = files.replace(".html",""))				
+				# file_dict[files] = query_result[0] - reimplement after database
+				file_dict[files] = os.path.join('pqresults', 'results', files)
+			except IndexError:
+				# Have to create a fake object here to resemble above result for templating reasons
+				file_dict[files] = {"No data found"}
+				print("No such file found.")
+
 	return render(request, 'pqanalysis/pqresults.html', {'file_dict':file_dict})
